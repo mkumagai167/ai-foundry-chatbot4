@@ -1,0 +1,137 @@
+const axios = require("axios");
+const qs = require("qs");
+
+module.exports = async function (context, req) {
+  try {
+    context.log("runAgent triggered:", req.method);
+
+    // Handle preflight request (CORS)
+    if (req.method === "OPTIONS") {
+      context.res = {
+        status: 204,
+        headers: {
+          "Access-Control-Allow-Origin": "http://localhost:3000",
+          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        },
+      };
+      return;
+    }
+
+    const userMessage = req.body?.message;
+    if (!userMessage) {
+      context.res = { status: 400, body: { error: "Missing 'message' in request body." } };
+      return;
+    }
+    context.log("User message:", userMessage);
+
+    const {
+      AZURE_AI_PROJECT_ENDPOINT,
+      FOUNDRY_AGENT_ID,
+      AAD_CLIENT_ID,
+      AAD_CLIENT_SECRET,
+      AAD_TENANT_ID,
+    } = process.env;
+
+    // === STEP 1: Get Azure AD Token ===
+    const tokenResponse = await axios.post(
+      `https://login.microsoftonline.com/${AAD_TENANT_ID}/oauth2/v2.0/token`,
+      qs.stringify({
+        grant_type: "client_credentials",
+        client_id: AAD_CLIENT_ID,
+        client_secret: AAD_CLIENT_SECRET,
+        scope: "https://ai.azure.com/.default",
+      }),
+      { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+    );
+    const accessToken = tokenResponse.data.access_token;
+
+    // === STEP 2: Create thread and post user message ===
+    const runEndpoint = `${AZURE_AI_PROJECT_ENDPOINT}/threads/runs?api-version=v1`;
+    const quotedMessage = '\"' + String(userMessage) + '\"'
+    const runResponseLocal = await axios.post(
+      runEndpoint,
+      {
+        assistant_id: FOUNDRY_AGENT_ID,
+        max_prompt_tokens: 50000,
+        max_completion_tokens: 50000,
+        thread: {
+          messages: [
+            //{ role: "user", content: String(userMessage) }
+            { role: "user", content: "List device at LAPIX" }
+          ]
+        }
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    const threadId = runResponseLocal.data?.thread_id;
+    const runId = runResponseLocal.data?.id;
+    //const threadId = runResponseLocal.data?.thread?.id;
+    if (!threadId) throw new Error("Thread creation failed: no thread ID returned.");
+    context.log("Thread created:", threadId);
+    context.log("Run created created:", runId);
+
+    // === STEP 3: Poll the thread for AI response ===
+    //const messagesEndpoint = `${AZURE_AI_PROJECT_ENDPOINT}/assistants/${FOUNDRY_AGENT_ID}/threads/${threadId}/messages?api-version=v1`;
+    //const messagesEndpoint = `${AZURE_AI_PROJECT_ENDPOINT}/threads/${threadId}/?api-version=v1`;
+    const messagesEndpoint = `${AZURE_AI_PROJECT_ENDPOINT}/threads/${threadId}/messages?run_id=${runId}&api-version=v1`;
+    let aiReply = null;
+    const maxRetries = 10;
+    const delayMs = 5000;
+
+    for (let i = 0; i < maxRetries; i++) {
+      const messagesResponse = await axios.get(messagesEndpoint, {
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,          
+        },
+      });
+
+      const messages = messagesResponse.data?.content || [];
+      context.log("Content all:", messagesResponse);
+      context.log("Content is:", messages);
+      aiReply = messages.find(msg => msg.role === "assistant");
+
+      if (aiReply) break; // AI response received
+      await new Promise(res => setTimeout(res, delayMs));
+    }
+
+    if (!aiReply) {
+      context.log("AI did not respond within timeout.");
+      aiReply = { role: "assistant", content: "AI response not available yet." };
+    }
+
+    // === STEP 4: Return AI response to frontend ===
+    context.res = {
+      status: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "http://localhost:3000",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      },
+      body: aiReply,
+    };
+  } catch (error) {
+    context.log.error("Error in runAgent:", error.message);
+    if (error.response) {
+      context.log("Response data:", error.response.data);
+      context.log("Response status:", error.response.status);
+      context.log("Response headers:", error.response.headers);
+    }
+    context.res = {
+      status: 500,
+      headers: {
+        "Access-Control-Allow-Origin": "http://localhost:3000",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      },
+      body: { error: "Agent call failed", details: error.message },
+    };
+  }
+};

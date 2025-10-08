@@ -1,0 +1,16 @@
+{
+  "name": "foundry-backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "@azure/ai-agents": "^1.1.0",
+    "@azure/ai-projects": "^1.0.0-beta.2",
+    "@azure/identity": "^3.3.0",
+    "@azure/storage-blob": "^12.18.0",
+    "axios": "^1.12.2",
+    "file-saver": "^2.0.5",
+    "formidable": "^3.5.4",
+    "multer": "^2.0.2",
+    "qs": "^6.14.0"
+  }
+}
