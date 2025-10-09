@@ -7,7 +7,7 @@
     },
     {
       "route": "/api/*",
-      "allowedRoles": ["authenticated"]
+      //"allowedRoles": ["authenticated"]
     }
   ],
   "navigationFallback": {
