@@ -1,21 +1,30 @@
-import React, { useState} from "react";
+import React, { useState } from "react";
 import { useMsal, useIsAuthenticated } from "@azure/msal-react";
 import Chat from "./components/Chat";
 import FileUpload from "./components/FileUpload";
 import ExportButtons from "./components/ExportButtons";
+import { loginRequest } from "./authConfig";
 
 function App() {
   const { instance } = useMsal();
   const isAuthenticated = useIsAuthenticated();
 
   const [messages, setMessages] = useState([]);
-  
-  function login() {
-    instance.loginPopup();
+
+  async function login() {
+    try {
+      await instance.loginPopup(loginRequest);
+    } catch (error) {
+      console.error("Login failed:", error);
+    }
   }
 
-  function logout() {
-    instance.logoutPopup();
+  async function logout() {
+    try {
+      await instance.logoutPopup();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
   }
 
   return (
@@ -25,7 +34,6 @@ function App() {
         <>
           <button onClick={logout}>Logout</button>
           <Chat messages={messages} setMessages={setMessages} />
-          
           <ExportButtons messages={messages} />
         </>
       ) : (
