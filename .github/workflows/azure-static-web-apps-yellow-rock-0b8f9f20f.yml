@@ -45,7 +45,7 @@ jobs:
           action: "upload"
           app_location: "frontend"
           api_location: "backend/api"        # optional; omit if you don’t use APIs
-          output_location: "frontend/build"
+          output_location: "build"
           github_id_token: ${{ steps.idtoken.outputs.result }}
 
   close_pull_request_job:
