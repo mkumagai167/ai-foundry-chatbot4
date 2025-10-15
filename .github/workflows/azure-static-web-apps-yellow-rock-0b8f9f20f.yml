@@ -30,7 +30,7 @@ jobs:
           action: "upload"
           app_location: "frontend"       # adjust if needed
           api_location: "backend/api"    # adjust if needed
-          output_location: "build"       # adjust only if you're building to dist/, build/, etc.
+          output_location: ""       # adjust only if you're building to dist/, build/, etc.
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
