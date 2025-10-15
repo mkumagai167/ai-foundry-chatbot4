@@ -1,3 +1,8 @@
+// context.log("🔹 runAgent function triggered");
+// context.log("🔸 Request method:", req.method);
+// context.log("🔸 Request body:", JSON.stringify(req.body));
+// context.log("🔸 Request headers:", JSON.stringify(req.headers));
+
 // backend/api/runAgent/index.js
 const axios = require("axios");
 const qs = require("qs");
@@ -193,6 +198,7 @@ module.exports = async function (context, req) {
     };
   } catch (err) {
     context.log.error("Error in runAgent:", err.message);
+    context.log.error("Stack:", err.stack);
     if (err.response) {
       context.log("Response data:", err.response.data);
       context.log("Status:", err.response.status);
@@ -204,7 +210,11 @@ module.exports = async function (context, req) {
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       },
-      body: { error: err.message },
+      body: { 
+        error: err.message,
+        stack: err.stack,
+        detaiils: err.response?.data,
+       },
     };
   }
 };
