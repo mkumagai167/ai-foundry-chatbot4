@@ -15,22 +15,38 @@ jobs:
     runs-on: ubuntu-latest
     name: Build and Deploy Job
     permissions:
-      contents: read
       id-token: write
+      contents: read
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          submodules: true
+          lfs: false
+
+      - name: Install OIDC Client (for manual ID token)
+        run: npm install @actions/core@1.6.0 @actions/http-client
+
+      - name: Get GitHub OIDC Token
+        uses: actions/github-script@v6
+        id: idtoken
+        with:
+          script: |
+            const coredemo = require('@actions/core')
+            return await coredemo.getIDToken()
+          result-encoding: string
 
       - name: Build and Deploy to Azure Static Web Apps
         uses: Azure/static-web-apps-deploy@v1
+        id: builddeploy
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_YELLOW_ROCK_0B8F9F20F }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
           app_location: "frontend"
-          api_location: "backend/api"
-          output_location: ""
+          api_location: "backend/api"        # optional; omit if you don’t use APIs
+          output_location: "build"
+          github_id_token: ${{ steps.idtoken.outputs.result }}
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
