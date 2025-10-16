@@ -367,9 +367,11 @@ module.exports = async function (context, req) {
       },
     };
   } catch (err) {
-    context.log.error("Error in runAgent:", err.message);
-    if (err.response) {
+    context.log.error("Error in runAgent:", err?.message || err);
+    if (err?.response?.data) {
       context.log("Response data:", err.response.data);
+    }  
+    if (err?.response?.status) {  
       context.log("Status:", err.response.status);
     }
     context.res = {
