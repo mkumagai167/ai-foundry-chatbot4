@@ -51,8 +51,9 @@ jobs:
           cp package.json api-build/
           cp host.json api-build/
 
-      - name: Debug: List contents of api-build
+      - name: "Debug: List contents of api-build"
         run: |
+          echo "Listing contents of backend/api-build:"
           ls -R backend/api-build
 
       - name: Build and Deploy to Azure Static Web Apps
