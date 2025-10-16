@@ -36,22 +36,25 @@ jobs:
             const coredemo = require('@actions/core')
             return await coredemo.getIDToken()
           result-encoding: string
-      
+
       - name: Install backend dependencies
         run: |
           cd backend
           npm install
-      
+
       - name: Prepare backend build output
         run: |
           cd backend
-          npm install
           mkdir -p api-build
-          cp -r api api-build/
+          cp -r api/* api-build/
           cp -r node_modules api-build/
           cp package.json api-build/
           cp host.json api-build/
-          
+
+      - name: Debug: List contents of api-build
+        run: |
+          ls -R backend/api-build
+
       - name: Build and Deploy to Azure Static Web Apps
         uses: Azure/static-web-apps-deploy@v1
         id: builddeploy
@@ -59,7 +62,7 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_YELLOW_ROCK_0B8F9F20F }}
           action: "upload"
           app_location: "frontend"
-          api_location: "backend/api-build"        # optional; omit if you don’t use APIs
+          api_location: "backend/api-build"
           output_location: ""
           github_id_token: ${{ steps.idtoken.outputs.result }}
 
