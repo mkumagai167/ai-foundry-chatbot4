@@ -366,22 +366,31 @@ module.exports = async function (context, req) {
         assistantMessages,
       },
     };
+    
   } catch (err) {
-    context.log.error("Error in runAgent:", err?.message || err);
-    if (err?.response?.data) {
-      context.log("Response data:", err.response.data);
-    }  
-    if (err?.response?.status) {  
-      context.log("Status:", err.response.status);
-    }
+  context.log.error("Error in runAgent:", err?.message || JSON.stringify(err));
+  context.log.error("Stack:", err?.stack || "No stack trace");
+
+  if (err?.response?.data) {
+    context.log("Response data:", JSON.stringify(err.response.data));
+  }
+
+  if (err?.response?.status) {
+    context.log("Status:", err.response.status);
+  }
+    
     context.res = {
       status: 500,
       headers: {
-        "Access-Control-Allow-Origin": "http://localhost:3000",
+        "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       },
-      body: { error: err.message },
+      body: { 
+        error: err?.message || "Unknown error",
+        stack: err?.stack || null,
+        details: err?.response?.data || null,
+       },
     };
   }
 };
