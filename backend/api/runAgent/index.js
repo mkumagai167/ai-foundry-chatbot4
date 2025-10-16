@@ -368,17 +368,18 @@ module.exports = async function (context, req) {
     };
     
   } catch (err) {
-  context.log.error("Error in runAgent:", err?.message || JSON.stringify(err));
-  context.log.error("Stack:", err?.stack || "No stack trace");
+  try {
+    context.log.error("Error in runAgent:", err?.message || JSON.stringify(err));
+    context.log.error("Stack:", err?.stack || "No stack trace");
 
-  if (err?.response?.data) {
-    context.log("Response data:", JSON.stringify(err.response.data));
-  }
+    if (err?.response?.data) {
+      context.log("Response data:", JSON.stringify(err.response.data));
+    }
 
-  if (err?.response?.status) {
-    context.log("Status:", err.response.status);
-  }
-    
+    if (err?.response?.status) {
+      context.log("Status:", err.response.status);
+    }
+
     context.res = {
       status: 500,
       headers: {
@@ -386,11 +387,20 @@ module.exports = async function (context, req) {
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       },
-      body: { 
+      body: {
         error: err?.message || "Unknown error",
         stack: err?.stack || null,
         details: err?.response?.data || null,
-       },
+      },
+    };
+  } catch (loggingError) {
+    context.log.error("Error while handling error:", loggingError);
+    context.res = {
+      status: 500,
+      body: {
+        error: "Internal server error",
+      },
     };
   }
-};
+}
+}
