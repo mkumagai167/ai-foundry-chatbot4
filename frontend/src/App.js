@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useMsal, useIsAuthenticated } from "@azure/msal-react";
 import Chat from "./components/Chat";
 import FileUpload from "./components/FileUpload";
@@ -10,7 +10,6 @@ function App() {
   const isAuthenticated = useIsAuthenticated();
 
   const [messages, setMessages] = useState([]);
-  const [apiMessage, setApiMessage] = useState("");
 
   async function login() {
     try {
@@ -28,29 +27,12 @@ function App() {
     }
   }
 
-  useEffect(() => {
-    async function fetchApiMessage() {
-      try {
-        const response = await fetch("/api/message");
-        const data = await response.json();
-        setApiMessage(data.text);
-      } catch (error) {
-        console.error("Failed to fetch API message:", error);
-      }
-    }
-
-    if (isAuthenticated) {
-      fetchApiMessage();
-    }
-  }, [isAuthenticated]);
-
   return (
     <div style={{ padding: 20 }}>
       <h1>Azure Foundry Chat App</h1>
       {isAuthenticated ? (
         <>
           <button onClick={logout}>Logout</button>
-          <p><strong>API Message:</strong> {apiMessage || "Loading..."}</p>
           <Chat messages={messages} setMessages={setMessages} />
           <ExportButtons messages={messages} />
         </>
